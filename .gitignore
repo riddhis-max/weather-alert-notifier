@@ -1,0 +1,32 @@
+# Maven build output
+target/
+
+# VS Code settings
+.vscode/
+
+# IDE settings
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Java class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Environment files
+.env
+
+# Test reports
+surefire-reports/
