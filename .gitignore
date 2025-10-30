@@ -1,32 +1,29 @@
-# Maven build output
-target/
-
-# VS Code settings
+# === IDE & Tools ===
 .vscode/
-
-# IDE settings
 .idea/
 *.iml
+*.ipr
+*.iws
 
-# OS-specific files
+# === VSCode Counter ===
+.VSCodeCounter/
+
+# === Maven ===
+target/
+pom.xml.versionsBackup
+
+# === H2 Database (Dev Only) ===
+data/
+*.mv.db
+*.trace.db
+
+# === Docker (Optional) ===
+Dockerfile
+docker-compose.yml
+
+# === OS ===
 .DS_Store
 Thumbs.db
 
-# Logs and temp files
+# === Logs ===
 *.log
-*.tmp
-*.swp
-
-# Java class files
-*.class
-
-# Package files
-*.jar
-*.war
-*.ear
-
-# Environment files
-.env
-
-# Test reports
-surefire-reports/
