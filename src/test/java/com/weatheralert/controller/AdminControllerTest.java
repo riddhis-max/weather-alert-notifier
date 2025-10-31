@@ -52,4 +52,35 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("No subscribers yet")));
     }
+
+    @Test
+    void shouldShowZeroCountsWhenNoSubscribers() throws Exception {
+        mockMvc.perform(get("/admin"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("//div[contains(@class,'stats')]//p[1]/span").string("0"))
+                .andExpect(xpath("//div[contains(@class,'stats')]//p[2]/span").string("0"));
+    }
+
+    @Test
+    void shouldShowCorrectCountsAfterSubscribe() throws Exception {
+        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").build());
+        repo.save(Subscriber.builder().email("c@d.com").city("").build());
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//div[contains(@class,'stats')]//p[1]/span").string("2"))
+                .andExpect(xpath("//div[contains(@class,'stats')]//p[2]/span").string("1"));
+    }
+
+    @Test
+    void shouldUpdateStatsAfterDelete() throws Exception {
+        Subscriber sub = repo.save(Subscriber.builder().email("x@y.com").city("Hamburg").build());
+
+        mockMvc.perform(post("/admin/delete/{id}", sub.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//div[contains(@class,'stats')]//p[1]/span").string("0"))
+                .andExpect(xpath("//div[contains(@class,'stats')]//p[2]/span").string("0"));
+    }
+
 }

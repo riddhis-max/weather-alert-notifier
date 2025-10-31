@@ -76,12 +76,27 @@
             font-style: italic; 
             margin-top: 20px; 
         }
+        .stats { 
+            background: #f8f9fa; 
+            padding: 12px; 
+            border-radius: 6px; 
+            margin: 15px 0; 
+            font-size: 14px; 
+            border-left: 4px solid #007bff; 
+        }
+        .stats p { margin: 6px 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Weather Alert Admin Dashboard</h1>
 
+        <div class="stats">
+            <p><strong>Total:</strong> <span th:text="${totalCount}">0</span></p>
+            <p><strong>Active:</strong> <span th:text="${activeCount}">0</span></p>
+            <p><strong>Last Checked:</strong> <span th:text="${lastChecked}">Never</span></p>
+        </div>
+        
         <!-- Subscribers Table -->
         <table th:if="${!subscribers.isEmpty()}">
             <thead>
