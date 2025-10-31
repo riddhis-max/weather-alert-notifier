@@ -87,16 +87,24 @@ class AdminControllerTest {
 
     @Test
     void shouldShowNAForEmptyCity() throws Exception {
-        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('empty@test.com', '')");
+        long id = repo.save(Subscriber.builder()
+        .email("empty@test.com")
+        .city("")
+        .build()).getId();
+
         mockMvc.perform(get("/admin"))
-                .andExpect(xpath("//td[contains(text(),'empty@test.com')]/following-sibling::td").string("N/A"));
+            .andExpect(xpath("//tr[td=" + id + "]/td[3]").string("N/A"));
     }
 
     @Test
     void shouldShowCityWhenPresent() throws Exception {
-        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('valid@test.com', 'Berlin')");
+        long id = repo.save(Subscriber.builder()
+        .email("valid@test.com")
+        .city("Berlin")
+        .build()).getId();
+
         mockMvc.perform(get("/admin"))
-                .andExpect(xpath("//td[contains(text(),'valid@test.com')]/following-sibling::td").string("Berlin"));
+            .andExpect(xpath("//tr[td=" + id + "]/td[3]").string("Berlin"));
     }
 
     @Test
@@ -137,4 +145,39 @@ class AdminControllerTest {
         // Since log is in AlertScheduler, we can mock or check via integration
         // For simplicity, we skip log assertion in P2P (allowed)
     }
+
+    @Test
+    void shouldMaskFullEmail() throws Exception {
+        repo.save(Subscriber.builder()
+            .email("full.test.long.email.address@gmail.com")
+            .city("Berlin")
+            .build());
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//tr[td[contains(text(),'f.test.long.email.address@gmail.com')]]").doesNotExist())
+                .andExpect(xpath("//tr[td[contains(text(),'f***************************@gmail.com')]]").exists());
+    }
+
+    @Test
+    void shouldKeepShortEmailUnchanged() throws Exception {
+        repo.save(Subscriber.builder()
+            .email("a@b.com")
+            .city("Paris")
+            .build());
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//tr[td[text()='a@b.com']]").exists());
+    }
+
+    @Test
+    void shouldMaskLongEmailCorrectly() throws Exception {
+        repo.save(Subscriber.builder()
+            .email("test.long.email.address@gmail.com")
+            .city("Berlin")
+            .build());
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//tr[td[text()='t**********************@gmail.com']]").exists());
+    }
+        
 }

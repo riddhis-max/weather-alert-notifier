@@ -39,7 +39,7 @@ public class AdminController {
             .map(sub -> {
                 Subscriber copy = new Subscriber();
                 copy.setId(sub.getId());
-                copy.setEmail(sub.getEmail());
+                copy.setEmail(maskEmail(sub.getEmail()));
                 copy.setCity(
                     sub.getCity() == null || sub.getCity().trim().isEmpty() 
                     ? "N/A" 
@@ -91,5 +91,24 @@ public class AdminController {
         }
 
         return "redirect:/admin";
-}
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "Invalid";
+        }
+        String[] parts = email.split("@");
+        String local = parts[0];
+        String domain = parts[1];
+    
+        if (local.length() <= 1) {
+            return email; // too short to mask
+        }
+    
+        String maskedLocal = local.charAt(0) + 
+                             "*".repeat(local.length() - 1);
+    
+        return maskedLocal + "@" + domain;
+    }
+    
 }
