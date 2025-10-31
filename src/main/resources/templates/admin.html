@@ -113,6 +113,7 @@
                     <th>ID</th>
                     <th>Email</th>
                     <th>City</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -121,12 +122,21 @@
                     <td th:text="${sub.id}"></td>
                     <td th:text="${sub.email}"></td>
                     <td th:text="${sub.city}"></td>
+                    <td th:text="${sub.status}"></td>
                     <td class="actions">
                         <form th:action="@{'/admin/delete/' + ${sub.id}}" 
                               method="post" 
                               style="display:inline"
                               onsubmit="return confirm('Delete this subscriber?')">
                             <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                        <!-- NEW TOGGLE FORM -->
+                        <form th:action="@{'/admin/toggle/' + ${sub.id}}" method="post" style="display:inline">
+                            <button type="submit" class="btn" 
+                                    th:text="${sub.status == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}"
+                                    th:classappend="${sub.status == 'ACTIVE' ? 'btn-success' : 'btn-secondary'}">
+                                Toggle
+                            </button>
                         </form>
                     </td>
                 </tr>

@@ -45,20 +45,21 @@ public class AdminController {
                     ? "N/A" 
                     : sub.getCity().trim()
                 );
+                copy.setStatus(sub.getStatus());
                 return copy;
             })
             .collect(Collectors.toList());
 
         long total = displaySubs.size();
-        long active = displaySubs.stream()
-                                .filter(s -> !s.getCity().equals("N/A"))
-                                .count();
+        long activeCount = rawSubs.stream()
+            .filter(sub -> sub.getStatus() == Subscriber.Status.ACTIVE)
+            .count();
         String checked = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                                         .format(LocalDateTime.now());
 
         model.addAttribute("subscribers", displaySubs);  // ← CHANGED
         model.addAttribute("totalCount", total);
-        model.addAttribute("activeCount", active);
+        model.addAttribute("activeCount", activeCount);
         model.addAttribute("lastChecked", checked);
 
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -77,19 +78,38 @@ public class AdminController {
 
     @PostMapping("/trigger")
     public String triggerAlert(RedirectAttributes redirectAttributes) {
-        List<Subscriber> subs = subscriberRepository.findAll();
+        List<Subscriber> allSubs = subscriberRepository.findAll();
+        List<Subscriber> activeSubs = allSubs.stream()
+            .filter(sub -> sub.getStatus() == Subscriber.Status.ACTIVE)
+            .collect(Collectors.toList());
 
-        if (subs.isEmpty()) {
+        if (allSubs.isEmpty()) {
             log.info("Trigger requested but no subscribers — skipping alert check");
             redirectAttributes.addFlashAttribute("message", "No subscribers to check.");
             redirectAttributes.addFlashAttribute("messageType", "info");
+        } else if (activeSubs.isEmpty()) {
+            log.info("Trigger requested but no active subscribers — skipping alert check");
+            redirectAttributes.addFlashAttribute("message", "No active subscribers to check.");
+            redirectAttributes.addFlashAttribute("messageType", "info");
         } else {
-            log.info("Manual trigger: checking weather for {} subscribers", subs.size());
-            alertScheduler.checkWeatherAndAlert();
-            redirectAttributes.addFlashAttribute("message", "Alert check triggered for " + subs.size() + " subscribers.");
+            log.info("Manual trigger: checking weather for {} active subscribers", activeSubs.size());
+            alertScheduler.checkWeatherAndAlert(); // Uses active filter in WeatherService
+            redirectAttributes.addFlashAttribute("message", 
+                "Alert check triggered for " + activeSubs.size() + " active subscriber(s).");
             redirectAttributes.addFlashAttribute("messageType", "success");
         }
+        return "redirect:/admin";
+    }
 
+    @PostMapping("/toggle/{id}")
+    public String toggleSubscriberStatus(@PathVariable("id") Long id) {
+        // Fetch from DB (original)
+        Subscriber original = subscriberRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Subscriber not found"));
+        
+        original.toggleStatus();  // Toggle original
+        subscriberRepository.save(original);  // Save to DB
+        
         return "redirect:/admin";
     }
 

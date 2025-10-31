@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +29,15 @@ public class WeatherService {
     public List<String> generateAlerts() {
         List<String> alerts = new ArrayList<>();
         List<Subscriber> subscribers = subscriberRepository.findAll();
+        
+        // NEW: Filter active subscribers only
+        List<Subscriber> activeSubs = subscribers.stream()
+            .filter(sub -> sub.getStatus() == Subscriber.Status.ACTIVE)
+            .collect(Collectors.toList());
+    
+        log.info("Generating weather alerts for {} subscribers", activeSubs.size());
 
-        log.info("Generating weather alerts for {} subscribers", subscribers.size());
-
-        for (Subscriber sub : subscribers) {
+        for (Subscriber sub : activeSubs) {
             try {
                 // Hardcoded Berlin for now (52.52, 13.41)
                 WeatherData data = weatherClient.fetchWeather(25.20, 55.27);
