@@ -28,8 +28,8 @@ class AdminControllerTest {
 
     @Test
     void shouldListSubscribers() throws Exception {
-        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").build());
-        repo.save(Subscriber.builder().email("c@d.com").city("Munich").build());
+        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").status(Subscriber.Status.ACTIVE).build());
+        repo.save(Subscriber.builder().email("c@d.com").city("Munich").status(Subscriber.Status.ACTIVE).build());
 
         mockMvc.perform(get("/admin"))
                 .andExpect(status().isOk())
@@ -39,7 +39,7 @@ class AdminControllerTest {
 
     @Test
     void shouldDeleteSubscriber() throws Exception {
-        Subscriber sub = repo.save(Subscriber.builder().email("x@y.com").city("Hamburg").build());
+        Subscriber sub = repo.save(Subscriber.builder().email("x@y.com").city("Hamburg").status(Subscriber.Status.ACTIVE).build());
 
         mockMvc.perform(post("/admin/delete/{id}", sub.getId()))  // ← CORRECT
                 .andExpect(status().is3xxRedirection())
@@ -65,8 +65,8 @@ class AdminControllerTest {
 
     @Test
     void shouldShowCorrectCountsAfterSubscribe() throws Exception {
-        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").build());
-        repo.save(Subscriber.builder().email("c@d.com").city("").build());
+        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").status(Subscriber.Status.ACTIVE).build());
+        repo.save(Subscriber.builder().email("c@d.com").city("").status(Subscriber.Status.ACTIVE).build());
 
         mockMvc.perform(get("/admin"))
                 .andExpect(xpath("//div[contains(@class,'stats')]//p[1]/span").string("2"))
@@ -75,7 +75,7 @@ class AdminControllerTest {
 
     @Test
     void shouldUpdateStatsAfterDelete() throws Exception {
-        Subscriber sub = repo.save(Subscriber.builder().email("x@y.com").city("Hamburg").build());
+        Subscriber sub = repo.save(Subscriber.builder().email("x@y.com").city("Hamburg").status(Subscriber.Status.ACTIVE).build());
 
         mockMvc.perform(post("/admin/delete/{id}", sub.getId()))
                 .andExpect(status().is3xxRedirection());
@@ -90,6 +90,7 @@ class AdminControllerTest {
         long id = repo.save(Subscriber.builder()
         .email("empty@test.com")
         .city("")
+        .status(Subscriber.Status.ACTIVE)
         .build()).getId();
 
         mockMvc.perform(get("/admin"))
@@ -101,6 +102,7 @@ class AdminControllerTest {
         long id = repo.save(Subscriber.builder()
         .email("valid@test.com")
         .city("Berlin")
+        .status(Subscriber.Status.ACTIVE)
         .build()).getId();
 
         mockMvc.perform(get("/admin"))
@@ -109,11 +111,19 @@ class AdminControllerTest {
 
     @Test
     void shouldShowActiveCountCorrectly() throws Exception {
-        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('a@test.com', 'Paris')");
-        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('b@test.com', '')");
+        repo.save(Subscriber.builder()
+            .email("a@test.com")
+            .city("Paris")
+            .status(Subscriber.Status.ACTIVE)
+            .build());
+        repo.save(Subscriber.builder()
+            .email("b@test.com")
+            .city("")
+            .status(Subscriber.Status.ACTIVE)
+            .build());
 
         mockMvc.perform(get("/admin"))
-                .andExpect(xpath("//p[strong='Active:']/span").string("1"));
+            .andExpect(xpath("//p[strong='Active:']/span").string("1"));
     }
 
     @Test
@@ -127,12 +137,12 @@ class AdminControllerTest {
 
     @Test
     void shouldTriggerAlertWithSubscribers() throws Exception {
-        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").build());
+        repo.save(Subscriber.builder().email("a@b.com").city("Berlin").status(Subscriber.Status.ACTIVE).build());
 
         mockMvc.perform(post("/admin/trigger"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin"))
-                .andExpect(flash().attribute("message", "Alert check triggered for 1 subscribers."))
+                .andExpect(flash().attribute("message", "Alert check triggered for 1 active subscriber(s)."))
                 .andExpect(flash().attribute("messageType", "success"));
     }
 
@@ -151,6 +161,7 @@ class AdminControllerTest {
         repo.save(Subscriber.builder()
             .email("full.test.long.email.address@gmail.com")
             .city("Berlin")
+            .status(Subscriber.Status.ACTIVE)
             .build());
 
         mockMvc.perform(get("/admin"))
@@ -163,6 +174,7 @@ class AdminControllerTest {
         repo.save(Subscriber.builder()
             .email("a@b.com")
             .city("Paris")
+            .status(Subscriber.Status.ACTIVE)
             .build());
 
         mockMvc.perform(get("/admin"))
@@ -174,10 +186,52 @@ class AdminControllerTest {
         repo.save(Subscriber.builder()
             .email("test.long.email.address@gmail.com")
             .city("Berlin")
+            .status(Subscriber.Status.ACTIVE)
             .build());
 
         mockMvc.perform(get("/admin"))
                 .andExpect(xpath("//tr[td[text()='t**********************@gmail.com']]").exists());
     }
-        
+
+    @Test
+    void shouldSaveNewSubscriberAsActive() throws Exception {
+        Subscriber sub = repo.save(Subscriber.builder()
+            .email("new@test.com")
+            .city("Berlin")
+            .status(Subscriber.Status.ACTIVE)
+            .build());
+
+        assert sub.getStatus() == Subscriber.Status.ACTIVE;
+    }
+
+    @Test
+    void shouldToggleFromActiveToInactive() throws Exception {
+        Subscriber sub = repo.save(Subscriber.builder()
+            .email("toggle1@test.com")
+            .city("Paris")
+            .status(Subscriber.Status.ACTIVE)
+            .build());
+
+        mockMvc.perform(post("/admin/toggle/{id}", sub.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        Subscriber updated = repo.findById(sub.getId()).orElseThrow();
+        assert updated.getStatus() == Subscriber.Status.INACTIVE;
+    }
+
+    @Test
+    void shouldToggleFromInactiveToActive() throws Exception {
+        Subscriber sub = repo.save(Subscriber.builder()
+            .email("toggle2@test.com")
+            .city("Munich")
+            .status(Subscriber.Status.INACTIVE)
+            .build());
+
+        mockMvc.perform(post("/admin/toggle/{id}", sub.getId()))
+                .andExpect(status().is3xxRedirection());
+
+        Subscriber updated = repo.findById(sub.getId()).orElseThrow();
+        assert updated.getStatus() == Subscriber.Status.ACTIVE;
+    }
+            
 }
