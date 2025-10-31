@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,15 +28,31 @@ public class AdminController {
 
     @GetMapping
     public String adminPage(Model model, HttpServletResponse response) {
-        List<Subscriber> all = subscriberRepository.findAll();
-        long total = all.size();
-        long active = all.stream()
-                        .filter(s -> s.getCity() != null && !s.getCity().trim().isEmpty())
-                        .count();
+        List<Subscriber> rawSubs = subscriberRepository.findAll();
+    
+        // NEW: Transform list to display "N/A" for empty city
+        List<Subscriber> displaySubs = rawSubs.stream()
+            .map(sub -> {
+                Subscriber copy = new Subscriber();
+                copy.setId(sub.getId());
+                copy.setEmail(sub.getEmail());
+                copy.setCity(
+                    sub.getCity() == null || sub.getCity().trim().isEmpty() 
+                    ? "N/A" 
+                    : sub.getCity().trim()
+                );
+                return copy;
+            })
+            .collect(Collectors.toList());
+
+        long total = displaySubs.size();
+        long active = displaySubs.stream()
+                                .filter(s -> !s.getCity().equals("N/A"))
+                                .count();
         String checked = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                                         .format(LocalDateTime.now());
 
-        model.addAttribute("subscribers", all);
+        model.addAttribute("subscribers", displaySubs);  // ← CHANGED
         model.addAttribute("totalCount", total);
         model.addAttribute("activeCount", active);
         model.addAttribute("lastChecked", checked);
@@ -43,7 +60,9 @@ public class AdminController {
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", 0);
-            return "admin";
+        
+        return "admin";
+        
     }
 
     @PostMapping("/delete/{id}")

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -18,6 +19,7 @@ class AdminControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private SubscriberRepository repo;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
@@ -83,4 +85,26 @@ class AdminControllerTest {
                 .andExpect(xpath("//div[contains(@class,'stats')]//p[2]/span").string("0"));
     }
 
+    @Test
+    void shouldShowNAForEmptyCity() throws Exception {
+        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('empty@test.com', '')");
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//td[contains(text(),'empty@test.com')]/following-sibling::td").string("N/A"));
+    }
+
+    @Test
+    void shouldShowCityWhenPresent() throws Exception {
+        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('valid@test.com', 'Berlin')");
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//td[contains(text(),'valid@test.com')]/following-sibling::td").string("Berlin"));
+    }
+
+    @Test
+    void shouldShowActiveCountCorrectly() throws Exception {
+        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('a@test.com', 'Paris')");
+        jdbcTemplate.execute("INSERT INTO subscribers (email, city) VALUES ('b@test.com', '')");
+
+        mockMvc.perform(get("/admin"))
+                .andExpect(xpath("//p[strong='Active:']/span").string("1"));
+    }
 }
