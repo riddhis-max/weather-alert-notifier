@@ -63,6 +63,8 @@ Open: http://localhost:8080/admin
 - Delete
 - Click "Trigger Alert Check Now"
 
+![Admin UI](../weather-alert-notifier/images/Screenshot%202025-10-31%20at%2012.59.11 PM.png)
+
 4. Docker
 ```bash
 docker build --platform linux/amd64 -t weather-alert-notifier .
