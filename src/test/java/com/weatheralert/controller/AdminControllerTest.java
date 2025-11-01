@@ -66,7 +66,7 @@ class AdminControllerTest {
     @Test
     void shouldShowCorrectCountsAfterSubscribe() throws Exception {
         repo.save(Subscriber.builder().email("a@b.com").city("Berlin").status(Subscriber.Status.ACTIVE).build());
-        repo.save(Subscriber.builder().email("c@d.com").city("").status(Subscriber.Status.ACTIVE).build());
+        repo.save(Subscriber.builder().email("c@d.com").city("").status(Subscriber.Status.INACTIVE).build());
 
         mockMvc.perform(get("/admin"))
                 .andExpect(xpath("//div[contains(@class,'stats')]//p[1]/span").string("2"))
@@ -119,7 +119,7 @@ class AdminControllerTest {
         repo.save(Subscriber.builder()
             .email("b@test.com")
             .city("")
-            .status(Subscriber.Status.ACTIVE)
+            .status(Subscriber.Status.INACTIVE)
             .build());
 
         mockMvc.perform(get("/admin"))
