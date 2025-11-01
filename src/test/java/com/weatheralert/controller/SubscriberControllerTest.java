@@ -55,4 +55,46 @@ public class SubscriberControllerTest {
                 .content("{\"email\":\"a@b.com\",\"city\":\"\"}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldRejectFakeDomain() throws Exception {
+        mvc.perform(post("/api/subscribe")
+                .contentType("application/json")
+                .content("""
+                        {
+                            "email": "test@fake-domain-xyz-abc-123.com",
+                            "city": "Berlin"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Invalid or fake email domain")));
+    }
+
+    @Test
+    void shouldAcceptRealDomain() throws Exception {
+        mvc.perform(post("/api/subscribe")
+                .contentType("application/json")
+                .content("""
+                        {
+                            "email": "user@gmail.com",
+                            "city": "Berlin"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Subscribed successfully!"));
+    }
+
+    @Test
+    void shouldRejectSuspiciousPattern_P2P() throws Exception {
+        mvc.perform(post("/api/subscribe")
+                .contentType("application/json")
+                .content("""
+                        {
+                            "email": "a@b1234567890.com",
+                            "city": "Berlin"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Invalid or fake email domain")));
+    }
 }
